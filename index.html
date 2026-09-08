@@ -55,6 +55,11 @@
             padding: 4px;
             cursor: pointer;
         }
+        input[type="file"] {
+            font-size: 12px;
+            padding: 4px;
+            cursor: pointer;
+        }
         .slider-group {
             margin-bottom: 15px;
         }
@@ -94,6 +99,21 @@
             object-fit: contain;
             border-radius: 4px;
             background: transparent;
+            display: none;
+        }
+        .mockup-placeholder {
+            width: 100%;
+            height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #444;
+            border-radius: 4px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
         }
         .download-btn {
             display: inline-block;
@@ -161,22 +181,27 @@
         <h3>Preview Display</h3>
         
         <div class="three-panel-display">
-            <!-- Left Mockup (Motorola) -->
+            <!-- Left Reference Upload -->
             <div class="mockup-box">
-                <span>Motorola Mockup</span>
-                <img id="motorola-preview" src="./preview/motorola.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'none\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorola.png</text></svg>'">
+                <span>Reference Shot 1</span>
+                <input type="file" id="upload-left" accept="image/*">
+                <div id="placeholder-left" class="mockup-placeholder">No Image Uploaded</div>
+                <img id="preview-left" alt="Reference Left">
             </div>
 
             <!-- Center Custom Preview -->
             <div class="mockup-box" style="border-color: #007BFF;">
                 <span style="color: #007BFF; font-weight: bold;">Custom Output Preview</span>
-                <img id="center-preview" alt="Center Preview">
+                <div style="height: 28px;"></div> <!-- Spacer to match layout height of file inputs -->
+                <img id="center-preview" alt="Center Preview" style="display: block;">
             </div>
 
-            <!-- Right Mockup (Samsung) -->
+            <!-- Right Reference Upload -->
             <div class="mockup-box">
-                <span>Samsung Mockup</span>
-                <img id="samsung-preview" src="./preview/samsung.png" alt="Samsung Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'none\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/samsung.png</text></svg>'">
+                <span>Reference Shot 2</span>
+                <input type="file" id="upload-right" accept="image/*">
+                <div id="placeholder-right" class="mockup-placeholder">No Image Uploaded</div>
+                <img id="preview-right" alt="Reference Right">
             </div>
         </div>
 
@@ -200,11 +225,19 @@
     const posYSlider = document.getElementById('pos-y');
     const valY = document.getElementById('val-y');
     
-    const errorMsg = document.getElementById('error-msg');
     const centerPreviewImg = document.getElementById('center-preview');
     const downloadLink = document.getElementById('download-link');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+
+    // Reference upload elements
+    const uploadLeft = document.getElementById('upload-left');
+    const previewLeft = document.getElementById('preview-left');
+    const placeholderLeft = document.getElementById('placeholder-left');
+
+    const uploadRight = document.getElementById('upload-right');
+    const previewRight = document.getElementById('preview-right');
+    const placeholderRight = document.getElementById('placeholder-right');
 
     let availableDesigns = [];
     let availableFrames = [];
@@ -344,6 +377,25 @@
         downloadLink.href = dataUrl;
         downloadLink.download = `${phone || 'custom'}_output.jpg`;
     }
+
+    // Handle File Uploads for Side Reference Mockups
+    function setupImageUpload(inputElement, previewElement, placeholderElement) {
+        inputElement.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewElement.src = event.target.result;
+                    previewElement.style.display = 'block';
+                    placeholderElement.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    setupImageUpload(uploadLeft, previewLeft, placeholderLeft);
+    setupImageUpload(uploadRight, previewRight, placeholderRight);
 
     designSelect.addEventListener('change', updateCanvas);
     frameSelect.addEventListener('change', updateCanvas);
