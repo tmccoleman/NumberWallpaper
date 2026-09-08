@@ -93,7 +93,7 @@
             height: 240px;
             object-fit: contain;
             border-radius: 4px;
-            background: #000;
+            background: transparent;
         }
         .download-btn {
             display: inline-block;
@@ -150,12 +150,7 @@
             <input type="color" id="text-color" value="#FFFFFF">
 
             <div class="slider-group">
-                <label for="pos-x">Box X Position: <span id="val-x">200</span>px</label>
-                <input type="range" id="pos-x" min="0" max="1000" value="200">
-            </div>
-
-            <div class="slider-group">
-                <label for="pos-y">Box Y Position: <span id="val-y">2150</span>px</label>
+                <label for="pos-y">Vertical Position (Y): <span id="val-y">2150</span>px</label>
                 <input type="range" id="pos-y" min="0" max="2400" value="2150">
             </div>
         </form>
@@ -169,7 +164,7 @@
             <!-- Left Mockup (Motorola) -->
             <div class="mockup-box">
                 <span>Motorola Mockup</span>
-                <img id="motorola-preview" src="./preview/motorola.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorola.png</text></svg>'">
+                <img id="motorola-preview" src="./preview/motorola.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'none\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorola.png</text></svg>'">
             </div>
 
             <!-- Center Custom Preview -->
@@ -181,7 +176,7 @@
             <!-- Right Mockup (Samsung) -->
             <div class="mockup-box">
                 <span>Samsung Mockup</span>
-                <img id="samsung-preview" src="./preview/samsung.png" alt="Samsung Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/samsung.png</text></svg>'">
+                <img id="samsung-preview" src="./preview/samsung.png" alt="Samsung Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'none\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/samsung.png</text></svg>'">
             </div>
         </div>
 
@@ -202,9 +197,7 @@
     const fontSizeSlider = document.getElementById('font-size');
     const valFontSize = document.getElementById('val-fontsize');
     const textColorInput = document.getElementById('text-color');
-    const posXSlider = document.getElementById('pos-x');
     const posYSlider = document.getElementById('pos-y');
-    const valX = document.getElementById('val-x');
     const valY = document.getElementById('val-y');
     
     const errorMsg = document.getElementById('error-msg');
@@ -268,7 +261,6 @@
 
         if (!selectedDesign) return;
 
-        valX.textContent = posXSlider.value;
         valY.textContent = posYSlider.value;
         valFontSize.textContent = fontSizeSlider.value;
 
@@ -279,33 +271,32 @@
             canvas.width = baseImg.width;
             canvas.height = baseImg.height;
 
-            posXSlider.max = baseImg.width - 50;
             posYSlider.max = baseImg.height - 50;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(baseImg, 0, 0);
 
-            let posX = parseInt(posXSlider.value);
             let posY = parseInt(posYSlider.value);
 
             if (selectedFrame) {
                 const frameImg = new Image();
                 frameImg.src = frameDir + selectedFrame;
                 frameImg.onload = function() {
-                    ctx.drawImage(frameImg, posX, posY);
-                    // Center text horizontally and vertically inside the frame box dimensions
-                    drawCenteredTextAndRender(phone, posX, posY, frameImg.width, frameImg.height);
+                    const frameX = (canvas.width - frameImg.width) / 2;
+                    ctx.drawImage(frameImg, frameX, posY);
+                    
+                    drawCenteredTextAndRender(phone, frameX, posY, frameImg.width, frameImg.height);
                 };
                 frameImg.onerror = function() {
-                    drawTextAndRender(phone, posX, posY);
+                    drawDefaultCenteredTextAndRender(phone, posY);
                 };
             } else {
-                drawTextAndRender(phone, posX, posY);
+                drawDefaultCenteredTextAndRender(phone, posY);
             }
         };
     }
 
-    function drawCenteredTextAndRender(phone, x, y, frameWidth, frameHeight) {
+    function drawCenteredTextAndRender(phone, boxX, boxY, boxWidth, boxHeight) {
         const fontSize = parseInt(fontSizeSlider.value);
         const fontFamily = fontFamilySelect.value;
         const textColor = textColorInput.value;
@@ -315,22 +306,18 @@
         ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.shadowBlur = 4;
         
-        // Measure text width to align precisely in the center horizontally
         const textMetrics = ctx.measureText(phone);
         const textWidth = textMetrics.width;
 
-        // Center horizontally inside the frame box bounds
-        const textX = x + (frameWidth - textWidth) / 2;
-        
-        // Center vertically using alphabetic baseline metrics approximation
-        const textY = y + (frameHeight / 2) + (fontSize / 3);
+        const textX = boxX + (boxWidth - textWidth) / 2;
+        const textY = boxY + (boxHeight / 2) + (fontSize / 3);
 
         ctx.fillText(phone, textX, textY);
 
         finalizeRender(phone);
     }
 
-    function drawTextAndRender(phone, x, y) {
+    function drawDefaultCenteredTextAndRender(phone, y) {
         const fontSize = parseInt(fontSizeSlider.value);
         const fontFamily = fontFamilySelect.value;
         const textColor = textColorInput.value;
@@ -340,8 +327,11 @@
         ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.shadowBlur = 4;
         
-        const textX = x + 20;
-        const textY = y + fontSize + 10;
+        const textMetrics = ctx.measureText(phone);
+        const textWidth = textMetrics.width;
+
+        const textX = (canvas.width - textWidth) / 2;
+        const textY = y + fontSize;
 
         ctx.fillText(phone, textX, textY);
 
@@ -361,7 +351,6 @@
     fontFamilySelect.addEventListener('change', updateCanvas);
     fontSizeSlider.addEventListener('input', updateCanvas);
     textColorInput.addEventListener('input', updateCanvas);
-    posXSlider.addEventListener('input', updateCanvas);
     posYSlider.addEventListener('input', updateCanvas);
 
     loadAssets();
