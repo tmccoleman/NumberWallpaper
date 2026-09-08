@@ -70,10 +70,23 @@
             cursor: pointer;
         }
         input[type="file"] {
-            font-size: 10px;
-            padding: 3px;
-            cursor: pointer;
+            display: none;
         }
+        .upload-btn-custom {
+            display: block;
+            width: 100%;
+            padding: 5px 8px;
+            background: #007BFF;
+            color: white;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            box-sizing: border-box;
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+        .upload-btn-custom:hover { background: #0056b3; }
         .slider-group {
             margin-bottom: 6px;
         }
@@ -87,6 +100,25 @@
             cursor: pointer;
             margin: 0;
         }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 4px;
+            flex-shrink: 0;
+        }
+        .preview-toggle {
+            background: #2d2d2d;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .preview-toggle:hover { background: #3d3d3d; }
         .preview-box {
             text-align: center;
             width: 100%;
@@ -174,15 +206,16 @@
                 <label for="phone">Phone Number / Text:</label>
                 <input type="text" id="phone" required placeholder="(555) 123-4567" value="(555) 123-4567">
 
-                <label for="design">Design / Homescreen:</label>
+                <label for="design">Final Design / Homescreen:</label>
                 <select id="design" required>
                     <option value="" disabled selected>Loading designs...</option>
-                    <option value="upload_custom">📁 Upload Custom Snapshot...</option>
                 </select>
 
-                <input type="file" id="custom-design-upload" accept="image/*" style="display: none;">
+                <label>Positioning Reference:</label>
+                <label for="reference-upload" class="upload-btn-custom" id="upload-label">📁 Upload Screenshot Ref...</label>
+                <input type="file" id="reference-upload" accept="image/*">
 
-                <label for="box-color">Box Background Color (Leave empty for none):</label>
+                <label for="box-color">Box Background Color:</label>
                 <div style="display: flex; gap: 5px; margin-bottom: 6px;">
                     <input type="color" id="box-color" value="#000000" style="flex-grow: 1; margin-bottom: 0;">
                     <button type="button" id="clear-box-color" style="width: auto; padding: 4px 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px;">None</button>
@@ -219,13 +252,16 @@
         </div>
     </div>
 
-    <!-- Single Preview Display -->
+    <!-- Single Preview Display with Toggle -->
     <div class="preview-panel">
-        <h3>Preview Display</h3>
+        <div class="preview-header">
+            <h3 id="preview-title" style="margin: 0;">Final Output Preview</h3>
+            <button type="button" id="toggle-view-btn" class="preview-toggle">Switch to: Reference View</button>
+        </div>
         
         <div class="preview-box">
-            <span>Custom Output Preview</span>
-            <img id="center-preview" alt="Center Preview">
+            <span id="preview-subtitle">Clean Output Preview</span>
+            <img id="active-preview" alt="Preview Display">
         </div>
 
         <a id="download-link" class="download-btn" download="custom_image.jpg">Download Custom Image</a>
@@ -238,7 +274,8 @@
     const imageDir = './images/';
     
     const designSelect = document.getElementById('design');
-    const customDesignUpload = document.getElementById('custom-design-upload');
+    const referenceUpload = document.getElementById('reference-upload');
+    const uploadLabel = document.getElementById('upload-label');
     const phoneInput = document.getElementById('phone');
     const boxColorInput = document.getElementById('box-color');
     const clearBoxColorBtn = document.getElementById('clear-box-color');
@@ -252,13 +289,18 @@
     const posYSlider = document.getElementById('pos-y');
     const valY = document.getElementById('val-y');
     
-    const centerPreviewImg = document.getElementById('center-preview');
+    const activePreviewImg = document.getElementById('active-preview');
+    const previewTitle = document.getElementById('preview-title');
+    const previewSubtitle = document.getElementById('preview-subtitle');
+    const toggleViewBtn = document.getElementById('toggle-view-btn');
     const downloadLink = document.getElementById('download-link');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
     let availableDesigns = [];
-    let currentBaseImage = null;
+    let presetImages = {};
+    let currentReferenceImage = null;
+    let currentMode = 'final'; // 'final' or 'reference'
 
     async function loadAssets() {
         availableDesigns = ['design_1.jpg', 'design_2.jpg'];
@@ -271,10 +313,20 @@
         }
 
         rebuildDesignDropdown();
-        if (availableDesigns.length > 0) {
-            designSelect.value = availableDesigns[0];
-            loadPresetDesign(availableDesigns[0]);
-        }
+
+        let loadedCount = 0;
+        availableDesigns.forEach(name => {
+            const img = new Image();
+            img.src = imageDir + name;
+            img.onload = function() {
+                presetImages[name] = img;
+                loadedCount++;
+                if (loadedCount === 1) {
+                    designSelect.value = name;
+                    updatePreviews();
+                }
+            };
+        });
     }
 
     function rebuildDesignDropdown() {
@@ -285,61 +337,51 @@
             opt.textContent = name;
             designSelect.appendChild(opt);
         });
-
-        const uploadOpt = document.createElement('option');
-        uploadOpt.value = 'upload_custom';
-        uploadOpt.textContent = '📁 Upload Custom Snapshot...';
-        designSelect.appendChild(uploadOpt);
     }
 
-    function loadPresetDesign(filename) {
-        const img = new Image();
-        img.src = imageDir + filename;
-        img.onload = function() {
-            currentBaseImage = img;
-            posYSlider.max = Math.max(0, currentBaseImage.height - 50);
-            updateCanvas();
-        };
-    }
-
-    designSelect.addEventListener('change', function() {
-        if (designSelect.value === 'upload_custom') {
-            customDesignUpload.click();
-        } else {
-            loadPresetDesign(designSelect.value);
-        }
-    });
-
-    customDesignUpload.addEventListener('change', function(e) {
+    referenceUpload.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
-                    currentBaseImage = img;
-                    posYSlider.max = Math.max(0, currentBaseImage.height - 50);
+                    currentReferenceImage = img;
+                    uploadLabel.textContent = '📁 Change Reference...';
+                    posYSlider.max = Math.max(0, currentReferenceImage.height - 50);
                     
-                    const customOptionVal = 'custom_uploaded_' + file.name;
-                    if (![...designSelect.options].some(o => o.value === customOptionVal)) {
-                        const opt = document.createElement('option');
-                        opt.value = customOptionVal;
-                        opt.textContent = 'Custom: ' + file.name;
-                        designSelect.insertBefore(opt, designSelect.lastElementChild);
-                    }
-                    designSelect.value = customOptionVal;
-                    updateCanvas();
+                    // Automatically switch to reference view so the user immediately sees what they uploaded
+                    currentMode = 'reference';
+                    updateToggleUI();
+                    updatePreviews();
                 };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
-        } else {
-            if (!currentBaseImage && availableDesigns.length > 0) {
-                designSelect.value = availableDesigns[0];
-                loadPresetDesign(availableDesigns[0]);
-            }
         }
     });
+
+    toggleViewBtn.addEventListener('click', function() {
+        if (!currentReferenceImage && currentMode === 'final') {
+            alert("Please upload a screenshot reference first using the 'Upload Screenshot Ref' button.");
+            return;
+        }
+        currentMode = currentMode === 'final' ? 'reference' : 'final';
+        updateToggleUI();
+        updatePreviews();
+    });
+
+    function updateToggleUI() {
+        if (currentMode === 'reference') {
+            previewTitle.textContent = 'Reference View Preview';
+            previewSubtitle.textContent = 'Screenshot Reference (Icons/Widgets)';
+            toggleViewBtn.textContent = 'Switch to: Final Output';
+        } else {
+            previewTitle.textContent = 'Final Output Preview';
+            previewSubtitle.textContent = 'Clean Output Preview';
+            toggleViewBtn.textContent = 'Switch to: Reference View';
+        }
+    }
 
     clearBoxColorBtn.addEventListener('click', function() {
         if (boxColorEnabledInput.value === 'true') {
@@ -351,26 +393,21 @@
             clearBoxColorBtn.style.background = '#333';
             clearBoxColorBtn.textContent = 'None';
         }
-        updateCanvas();
+        updatePreviews();
     });
 
-    function updateCanvas() {
-        if (!currentBaseImage) return;
+    function updatePreviews() {
+        const selectedDesignName = designSelect.value;
+        const baseDesignImage = presetImages[selectedDesignName];
 
-        const textValue = phoneInput.value;
+        if (!baseDesignImage) return;
+
         valY.textContent = posYSlider.value;
         valFontSize.textContent = fontSizeSlider.value;
         valRadius.textContent = boxRadiusSlider.value;
 
-        canvas.width = currentBaseImage.width;
-        canvas.height = currentBaseImage.height;
-
-        posYSlider.max = Math.max(0, currentBaseImage.height - 50);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(currentBaseImage, 0, 0);
-
-        let posY = parseInt(posYSlider.value);
+        const textValue = phoneInput.value;
+        const posY = parseInt(posYSlider.value);
         const fontSize = parseInt(fontSizeSlider.value);
         const fontFamily = fontFamilySelect.value;
         const textColor = textColorInput.value;
@@ -378,58 +415,79 @@
         const boxColor = boxColorInput.value;
         const cornerRadius = parseInt(boxRadiusSlider.value);
 
-        ctx.font = `bold ${fontSize}px ${fontFamily}`;
-        const textMetrics = ctx.measureText(textValue);
+        // Always update download link based on the clean final design
+        canvas.width = baseDesignImage.width;
+        canvas.height = baseDesignImage.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(baseDesignImage, 0, 0);
+        renderTextAndBox(canvas, ctx, textValue, posY, fontSize, fontFamily, textColor, boxEnabled, boxColor, cornerRadius);
+        
+        const finalDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        downloadLink.href = finalDataUrl;
+        const safeFilename = textValue.replace(/[^a-zA-Z0-9]/g, '_');
+        downloadLink.download = `${safeFilename || 'custom'}_output.jpg`;
+
+        // Render whichever mode is currently active on the single preview pane
+        let activeImage;
+        if (currentMode === 'reference' && currentReferenceImage) {
+            activeImage = currentReferenceImage;
+            posYSlider.max = Math.max(0, activeImage.height - 50);
+        } else {
+            currentMode = 'final';
+            updateToggleUI();
+            activeImage = baseDesignImage;
+            posYSlider.max = Math.max(0, activeImage.height - 50);
+        }
+
+        canvas.width = activeImage.width;
+        canvas.height = activeImage.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(activeImage, 0, 0);
+
+        renderTextAndBox(canvas, ctx, textValue, posY, fontSize, fontFamily, textColor, boxEnabled, boxColor, cornerRadius);
+
+        activePreviewImg.src = canvas.toDataURL('image/jpeg', 0.9);
+    }
+
+    function renderTextAndBox(targetCanvas, targetCtx, text, posY, fontSize, fontFamily, textColor, boxEnabled, boxColor, cornerRadius) {
+        targetCtx.font = `bold ${fontSize}px ${fontFamily}`;
+        const textMetrics = targetCtx.measureText(text);
         const textWidth = textMetrics.width;
 
-        // Make the background box span the full width of the image (X-axis)
         const boxX = 0;
-        const boxWidth = canvas.width;
-        
-        // Vertical padding relative to font size
+        const boxWidth = targetCanvas.width;
         const paddingY = fontSize * 0.4;
         const boxHeight = fontSize + (paddingY * 2);
 
         if (boxEnabled) {
-            ctx.fillStyle = boxColor;
-            ctx.beginPath();
-            if (typeof ctx.roundRect === 'function') {
-                ctx.roundRect(boxX, posY, boxWidth, boxHeight, cornerRadius);
+            targetCtx.fillStyle = boxColor;
+            targetCtx.beginPath();
+            if (typeof targetCtx.roundRect === 'function') {
+                targetCtx.roundRect(boxX, posY, boxWidth, boxHeight, cornerRadius);
             } else {
-                ctx.rect(boxX, posY, boxWidth, boxHeight);
+                targetCtx.rect(boxX, posY, boxWidth, boxHeight);
             }
-            ctx.fill();
+            targetCtx.fill();
         }
 
-        ctx.fillStyle = textColor;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 4;
+        targetCtx.fillStyle = textColor;
+        targetCtx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        targetCtx.shadowBlur = 4;
 
-        // Center the text horizontally within the full-width box, and align vertically
-        const textX = (canvas.width - textWidth) / 2;
+        const textX = (targetCanvas.width - textWidth) / 2;
         const textY = posY + paddingY + fontSize * 0.82; 
 
-        ctx.fillText(textValue, textX, textY);
-
-        finalizeRender(textValue);
+        targetCtx.fillText(text, textX, textY);
     }
 
-    function finalizeRender(text) {
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        centerPreviewImg.src = dataUrl;
-        downloadLink.href = dataUrl;
-        
-        const safeFilename = text.replace(/[^a-zA-Z0-9]/g, '_');
-        downloadLink.download = `${safeFilename || 'custom'}_output.jpg`;
-    }
-
-    phoneInput.addEventListener('input', updateCanvas);
-    boxColorInput.addEventListener('input', updateCanvas);
-    boxRadiusSlider.addEventListener('input', updateCanvas);
-    fontFamilySelect.addEventListener('change', updateCanvas);
-    fontSizeSlider.addEventListener('input', updateCanvas);
-    textColorInput.addEventListener('input', updateCanvas);
-    posYSlider.addEventListener('input', updateCanvas);
+    designSelect.addEventListener('change', updatePreviews);
+    phoneInput.addEventListener('input', updatePreviews);
+    boxColorInput.addEventListener('input', updatePreviews);
+    boxRadiusSlider.addEventListener('input', updatePreviews);
+    fontFamilySelect.addEventListener('change', updatePreviews);
+    fontSizeSlider.addEventListener('input', updatePreviews);
+    textColorInput.addEventListener('input', updatePreviews);
+    posYSlider.addEventListener('input', updatePreviews);
 
     loadAssets();
 </script>
