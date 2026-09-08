@@ -142,21 +142,21 @@
             </select>
 
             <div class="slider-group">
-                <label for="font-size">Font Size: <span id="val-fontsize">32</span>px</label>
-                <input type="range" id="font-size" min="12" max="100" value="32">
+                <label for="font-size">Font Size: <span id="val-fontsize">73</span>px</label>
+                <input type="range" id="font-size" min="12" max="100" value="73">
             </div>
 
             <label for="text-color">Text Color:</label>
             <input type="color" id="text-color" value="#FFFFFF">
 
             <div class="slider-group">
-                <label for="pos-x">Box X Position: <span id="val-x">50</span>px</label>
-                <input type="range" id="pos-x" min="0" max="1000" value="50">
+                <label for="pos-x">Box X Position: <span id="val-x">200</span>px</label>
+                <input type="range" id="pos-x" min="0" max="1000" value="200">
             </div>
 
             <div class="slider-group">
-                <label for="pos-y">Box Y Position: <span id="val-y">50</span>px</label>
-                <input type="range" id="pos-y" min="0" max="1000" value="50">
+                <label for="pos-y">Box Y Position: <span id="val-y">2150</span>px</label>
+                <input type="range" id="pos-y" min="0" max="1000" value="2150">
             </div>
         </form>
     </div>
@@ -317,7 +317,7 @@
         const textX = x + 20;
         const textY = y + fontSize + 10;
 
-        ctx.fillText(`User: ${phone}`, textX, textY);
+        ctx.fillText(`${phone}`, textX, textY);
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
         centerPreviewImg.src = dataUrl;
