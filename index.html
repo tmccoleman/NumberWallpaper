@@ -17,7 +17,7 @@
         .main-container {
             display: flex;
             gap: 20px;
-            max-width: 1200px;
+            max-width: 1000px;
             width: 100%;
         }
         .controls-panel {
@@ -57,7 +57,7 @@
         }
         input[type="file"] {
             font-size: 12px;
-            padding: 4px;
+            padding: 6px;
             cursor: pointer;
         }
         .slider-group {
@@ -71,49 +71,30 @@
             width: 100%;
             cursor: pointer;
         }
-        .three-panel-display {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        .mockup-box {
+        .preview-box {
             text-align: center;
-            flex: 1;
+            width: 100%;
             background: #121212;
             padding: 10px;
             border-radius: 6px;
-            border: 1px solid #333;
+            border: 1px solid #007BFF;
+            margin-bottom: 20px;
+            box-sizing: border-box;
         }
-        .mockup-box span {
-            font-size: 12px;
-            color: #aaa;
+        .preview-box span {
+            font-size: 13px;
+            color: #007BFF;
+            font-weight: bold;
             display: block;
             margin-bottom: 8px;
         }
-        .mockup-box img {
+        .preview-box img {
             width: 100%;
-            height: 240px;
+            max-height: 550px;
             object-fit: contain;
             border-radius: 4px;
             background: transparent;
-            display: none;
-        }
-        .mockup-placeholder {
-            width: 100%;
-            height: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #444;
-            border-radius: 4px;
-            color: #666;
-            font-size: 12px;
-            text-align: center;
-            padding: 10px;
-            box-sizing: border-box;
+            display: block;
         }
         .download-btn {
             display: inline-block;
@@ -124,6 +105,8 @@
             border-radius: 4px;
             font-weight: bold;
             text-align: center;
+            width: 100%;
+            box-sizing: border-box;
         }
         .download-btn:hover { background: #218838; }
         .error { color: #ff6b6b; font-size: 14px; margin-bottom: 10px; }
@@ -142,10 +125,14 @@
             <label for="phone">Phone Number:</label>
             <input type="text" id="phone" required placeholder="(555) 123-4567" value="5551234567">
 
-            <label for="design">Select Design:</label>
+            <label for="design">Select Design or Upload Homescreen:</label>
             <select id="design" required>
                 <option value="" disabled selected>Loading designs...</option>
+                <option value="upload_custom">📁 Upload Custom Snapshot...</option>
             </select>
+
+            <!-- Hidden file input triggered when custom upload is selected -->
+            <input type="file" id="custom-design-upload" accept="image/*" style="display: none;">
 
             <label for="frame">Select Frame Box:</label>
             <select id="frame">
@@ -176,33 +163,13 @@
         </form>
     </div>
 
-    <!-- 3-Panel Preview Display -->
+    <!-- Single Preview Display -->
     <div class="preview-panel">
         <h3>Preview Display</h3>
         
-        <div class="three-panel-display">
-            <!-- Left Reference Upload -->
-            <div class="mockup-box">
-                <span>Reference Shot 1</span>
-                <input type="file" id="upload-left" accept="image/*">
-                <div id="placeholder-left" class="mockup-placeholder">No Image Uploaded</div>
-                <img id="preview-left" alt="Reference Left">
-            </div>
-
-            <!-- Center Custom Preview -->
-            <div class="mockup-box" style="border-color: #007BFF;">
-                <span style="color: #007BFF; font-weight: bold;">Custom Output Preview</span>
-                <div style="height: 28px;"></div> <!-- Spacer to match layout height of file inputs -->
-                <img id="center-preview" alt="Center Preview" style="display: block;">
-            </div>
-
-            <!-- Right Reference Upload -->
-            <div class="mockup-box">
-                <span>Reference Shot 2</span>
-                <input type="file" id="upload-right" accept="image/*">
-                <div id="placeholder-right" class="mockup-placeholder">No Image Uploaded</div>
-                <img id="preview-right" alt="Reference Right">
-            </div>
+        <div class="preview-box">
+            <span>Custom Output Preview</span>
+            <img id="center-preview" alt="Center Preview">
         </div>
 
         <a id="download-link" class="download-btn" download="custom_image.jpg">Download Custom Image</a>
@@ -216,6 +183,7 @@
     const frameDir = './frames/';
     
     const designSelect = document.getElementById('design');
+    const customDesignUpload = document.getElementById('custom-design-upload');
     const frameSelect = document.getElementById('frame');
     const phoneInput = document.getElementById('phone');
     const fontFamilySelect = document.getElementById('font-family');
@@ -230,17 +198,9 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Reference upload elements
-    const uploadLeft = document.getElementById('upload-left');
-    const previewLeft = document.getElementById('preview-left');
-    const placeholderLeft = document.getElementById('placeholder-left');
-
-    const uploadRight = document.getElementById('upload-right');
-    const previewRight = document.getElementById('preview-right');
-    const placeholderRight = document.getElementById('placeholder-right');
-
     let availableDesigns = [];
     let availableFrames = [];
+    let currentBaseImage = null; // Stores either the preset Image object or custom uploaded Image object
 
     async function loadAssets() {
         availableDesigns = ['design_1.jpg', 'design_2.jpg'];
@@ -260,14 +220,11 @@
             console.warn("Using fallback frame list.");
         }
 
-        designSelect.innerHTML = '<option value="" disabled selected>Select a design</option>';
-        availableDesigns.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            designSelect.appendChild(opt);
-        });
-        if (availableDesigns.length > 0) designSelect.value = availableDesigns[0];
+        rebuildDesignDropdown();
+        if (availableDesigns.length > 0) {
+            designSelect.value = availableDesigns[0];
+            loadPresetDesign(availableDesigns[0]);
+        }
 
         frameSelect.innerHTML = '<option value="">None</option>';
         availableFrames.forEach(name => {
@@ -276,9 +233,71 @@
             opt.textContent = name;
             frameSelect.appendChild(opt);
         });
-        
-        updateCanvas();
     }
+
+    function rebuildDesignDropdown() {
+        designSelect.innerHTML = '';
+        availableDesigns.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            designSelect.appendChild(opt);
+        });
+
+        const uploadOpt = document.createElement('option');
+        uploadOpt.value = 'upload_custom';
+        uploadOpt.textContent = '📁 Upload Custom Snapshot...';
+        designSelect.appendChild(uploadOpt);
+    }
+
+    function loadPresetDesign(filename) {
+        const img = new Image();
+        img.src = imageDir + filename;
+        img.onload = function() {
+            currentBaseImage = img;
+            updateCanvas();
+        };
+    }
+
+    designSelect.addEventListener('change', function() {
+        if (designSelect.value === 'upload_custom') {
+            customDesignUpload.click();
+        } else {
+            loadPresetDesign(designSelect.value);
+        }
+    });
+
+    customDesignUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    currentBaseImage = img;
+                    
+                    // Add to dropdown if not already tracked
+                    const customOptionVal = 'custom_uploaded_' + file.name;
+                    if (![...designSelect.options].some(o => o.value === customOptionVal)) {
+                        const opt = document.createElement('option');
+                        opt.value = customOptionVal;
+                        opt.textContent = 'Custom: ' + file.name;
+                        designSelect.insertBefore(opt, designSelect.lastElementChild);
+                    }
+                    designSelect.value = customOptionVal;
+                    updateCanvas();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Revert dropdown if file picker was cancelled
+            if (!currentBaseImage && availableDesigns.length > 0) {
+                designSelect.value = availableDesigns[0];
+                loadPresetDesign(availableDesigns[0]);
+            }
+        }
+    });
 
     function sanitizePhone(input) {
         const digits = input.replace(/\D/g, '');
@@ -287,46 +306,40 @@
     }
 
     function updateCanvas() {
-        const selectedDesign = designSelect.value;
+        if (!currentBaseImage) return;
+
         const selectedFrame = frameSelect.value;
         const rawPhone = phoneInput.value;
         const phone = sanitizePhone(rawPhone) || rawPhone;
 
-        if (!selectedDesign) return;
-
         valY.textContent = posYSlider.value;
         valFontSize.textContent = fontSizeSlider.value;
 
-        const baseImg = new Image();
-        baseImg.src = imageDir + selectedDesign;
+        canvas.width = currentBaseImage.width;
+        canvas.height = currentBaseImage.height;
 
-        baseImg.onload = function() {
-            canvas.width = baseImg.width;
-            canvas.height = baseImg.height;
+        posYSlider.max = Math.max(0, currentBaseImage.height - 50);
 
-            posYSlider.max = baseImg.height - 50;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(currentBaseImage, 0, 0);
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(baseImg, 0, 0);
+        let posY = parseInt(posYSlider.value);
 
-            let posY = parseInt(posYSlider.value);
-
-            if (selectedFrame) {
-                const frameImg = new Image();
-                frameImg.src = frameDir + selectedFrame;
-                frameImg.onload = function() {
-                    const frameX = (canvas.width - frameImg.width) / 2;
-                    ctx.drawImage(frameImg, frameX, posY);
-                    
-                    drawCenteredTextAndRender(phone, frameX, posY, frameImg.width, frameImg.height);
-                };
-                frameImg.onerror = function() {
-                    drawDefaultCenteredTextAndRender(phone, posY);
-                };
-            } else {
+        if (selectedFrame) {
+            const frameImg = new Image();
+            frameImg.src = frameDir + selectedFrame;
+            frameImg.onload = function() {
+                const frameX = (canvas.width - frameImg.width) / 2;
+                ctx.drawImage(frameImg, frameX, posY);
+                
+                drawCenteredTextAndRender(phone, frameX, posY, frameImg.width, frameImg.height);
+            };
+            frameImg.onerror = function() {
                 drawDefaultCenteredTextAndRender(phone, posY);
-            }
-        };
+            };
+        } else {
+            drawDefaultCenteredTextAndRender(phone, posY);
+        }
     }
 
     function drawCenteredTextAndRender(phone, boxX, boxY, boxWidth, boxHeight) {
@@ -378,26 +391,6 @@
         downloadLink.download = `${phone || 'custom'}_output.jpg`;
     }
 
-    // Handle File Uploads for Side Reference Mockups
-    function setupImageUpload(inputElement, previewElement, placeholderElement) {
-        inputElement.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    previewElement.src = event.target.result;
-                    previewElement.style.display = 'block';
-                    placeholderElement.style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-
-    setupImageUpload(uploadLeft, previewLeft, placeholderLeft);
-    setupImageUpload(uploadRight, previewRight, placeholderRight);
-
-    designSelect.addEventListener('change', updateCanvas);
     frameSelect.addEventListener('change', updateCanvas);
     phoneInput.addEventListener('input', updateCanvas);
     fontFamilySelect.addEventListener('change', updateCanvas);
