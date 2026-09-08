@@ -100,6 +100,7 @@
             align-items: center;
             flex-grow: 1;
             min-height: 0;
+            overflow: hidden;
         }
         .preview-box span {
             font-size: 10px;
@@ -112,7 +113,7 @@
         .preview-box img {
             width: 100%;
             height: 100%;
-            max-height: calc(100vh - 100px);
+            max-height: calc(100vh - 140px);
             object-fit: contain;
             border-radius: 4px;
             background: transparent;
@@ -158,10 +159,17 @@
 
                 <input type="file" id="custom-design-upload" accept="image/*" style="display: none;">
 
-                <label for="frame">Frame Box:</label>
-                <select id="frame">
-                    <option value="">None</option>
-                </select>
+                <label for="box-color">Box Background Color (Leave empty for none):</label>
+                <div style="display: flex; gap: 5px; margin-bottom: 6px;">
+                    <input type="color" id="box-color" value="#000000" style="flex-grow: 1; margin-bottom: 0;">
+                    <button type="button" id="clear-box-color" style="width: auto; padding: 4px 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px;">None</button>
+                </div>
+                <input type="hidden" id="box-color-enabled" value="true">
+
+                <div class="slider-group">
+                    <label for="box-radius">Box Corner Radius: <span id="val-radius">12</span>px</label>
+                    <input type="range" id="box-radius" min="0" max="50" value="12">
+                </div>
 
                 <label for="font-family">Font Family:</label>
                 <select id="font-family">
@@ -205,12 +213,15 @@
 
 <script>
     const imageDir = './images/';
-    const frameDir = './frames/';
     
     const designSelect = document.getElementById('design');
     const customDesignUpload = document.getElementById('custom-design-upload');
-    const frameSelect = document.getElementById('frame');
     const phoneInput = document.getElementById('phone');
+    const boxColorInput = document.getElementById('box-color');
+    const clearBoxColorBtn = document.getElementById('clear-box-color');
+    const boxColorEnabledInput = document.getElementById('box-color-enabled');
+    const boxRadiusSlider = document.getElementById('box-radius');
+    const valRadius = document.getElementById('val-radius');
     const fontFamilySelect = document.getElementById('font-family');
     const fontSizeSlider = document.getElementById('font-size');
     const valFontSize = document.getElementById('val-fontsize');
@@ -224,12 +235,10 @@
     const ctx = canvas.getContext('2d');
 
     let availableDesigns = [];
-    let availableFrames = [];
     let currentBaseImage = null;
 
     async function loadAssets() {
         availableDesigns = ['design_1.jpg', 'design_2.jpg'];
-        availableFrames = ['frame_box.png', 'banner.png'];
 
         try {
             const desRes = await fetch(imageDir + 'manifest.json');
@@ -238,26 +247,11 @@
             console.warn("Using fallback design list.");
         }
 
-        try {
-            const frmRes = await fetch(frameDir + 'manifest.json');
-            if (frmRes.ok) availableFrames = await frmRes.json();
-        } catch (e) {
-            console.warn("Using fallback frame list.");
-        }
-
         rebuildDesignDropdown();
         if (availableDesigns.length > 0) {
             designSelect.value = availableDesigns[0];
             loadPresetDesign(availableDesigns[0]);
         }
-
-        frameSelect.innerHTML = '<option value="">None</option>';
-        availableFrames.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            frameSelect.appendChild(opt);
-        });
     }
 
     function rebuildDesignDropdown() {
@@ -280,6 +274,7 @@
         img.src = imageDir + filename;
         img.onload = function() {
             currentBaseImage = img;
+            posYSlider.max = Math.max(0, currentBaseImage.height - 50);
             updateCanvas();
         };
     }
@@ -300,6 +295,7 @@
                 const img = new Image();
                 img.onload = function() {
                     currentBaseImage = img;
+                    posYSlider.max = Math.max(0, currentBaseImage.height - 50);
                     
                     const customOptionVal = 'custom_uploaded_' + file.name;
                     if (![...designSelect.options].some(o => o.value === customOptionVal)) {
@@ -322,14 +318,26 @@
         }
     });
 
+    clearBoxColorBtn.addEventListener('click', function() {
+        if (boxColorEnabledInput.value === 'true') {
+            boxColorEnabledInput.value = 'false';
+            clearBoxColorBtn.style.background = '#5a2323';
+            clearBoxColorBtn.textContent = 'Off';
+        } else {
+            boxColorEnabledInput.value = 'true';
+            clearBoxColorBtn.style.background = '#333';
+            clearBoxColorBtn.textContent = 'None';
+        }
+        updateCanvas();
+    });
+
     function updateCanvas() {
         if (!currentBaseImage) return;
 
-        const selectedFrame = frameSelect.value;
         const textValue = phoneInput.value;
-
         valY.textContent = posYSlider.value;
         valFontSize.textContent = fontSizeSlider.value;
+        valRadius.textContent = boxRadiusSlider.value;
 
         canvas.width = currentBaseImage.width;
         canvas.height = currentBaseImage.height;
@@ -340,64 +348,46 @@
         ctx.drawImage(currentBaseImage, 0, 0);
 
         let posY = parseInt(posYSlider.value);
+        const fontSize = parseInt(fontSizeSlider.value);
+        const fontFamily = fontFamilySelect.value;
+        const textColor = textColorInput.value;
+        const boxEnabled = boxColorEnabledInput.value === 'true';
+        const boxColor = boxColorInput.value;
+        const cornerRadius = parseInt(boxRadiusSlider.value);
 
-        if (selectedFrame) {
-            const frameImg = new Image();
-            frameImg.src = frameDir + selectedFrame;
-            frameImg.onload = function() {
-                const frameX = (canvas.width - frameImg.width) / 2;
-                ctx.drawImage(frameImg, frameX, posY);
-                
-                drawCenteredTextAndRender(textValue, frameX, posY, frameImg.width, frameImg.height);
-            };
-            frameImg.onerror = function() {
-                drawDefaultCenteredTextAndRender(textValue, posY);
-            };
-        } else {
-            drawDefaultCenteredTextAndRender(textValue, posY);
+        ctx.font = `bold ${fontSize}px ${fontFamily}`;
+        const textMetrics = ctx.measureText(textValue);
+        const textWidth = textMetrics.width;
+
+        // Dynamic Padding based on font size
+        const paddingX = fontSize * 0.6;
+        const paddingY = fontSize * 0.4;
+        
+        const boxWidth = textWidth + (paddingX * 2);
+        const boxHeight = fontSize + (paddingY * 2);
+        const boxX = (canvas.width - boxWidth) / 2;
+
+        if (boxEnabled) {
+            ctx.fillStyle = boxColor;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(boxX, posY, boxWidth, boxHeight, cornerRadius);
+            } else {
+                ctx.rect(boxX, posY, boxWidth, boxHeight);
+            }
+            ctx.fill();
         }
-    }
 
-    function drawCenteredTextAndRender(text, boxX, boxY, boxWidth, boxHeight) {
-        const fontSize = parseInt(fontSizeSlider.value);
-        const fontFamily = fontFamilySelect.value;
-        const textColor = textColorInput.value;
-
-        ctx.font = `bold ${fontSize}px ${fontFamily}`;
         ctx.fillStyle = textColor;
         ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.shadowBlur = 4;
-        
-        const textMetrics = ctx.measureText(text);
-        const textWidth = textMetrics.width;
 
-        const textX = boxX + (boxWidth - textWidth) / 2;
-        const textY = boxY + (boxHeight / 2) + (fontSize / 3);
+        const textX = boxX + paddingX;
+        const textY = posY + paddingY + fontSize * 0.82; // Baseline alignment adjustment
 
-        ctx.fillText(text, textX, textY);
+        ctx.fillText(textValue, textX, textY);
 
-        finalizeRender(text);
-    }
-
-    function drawDefaultCenteredTextAndRender(text, y) {
-        const fontSize = parseInt(fontSizeSlider.value);
-        const fontFamily = fontFamilySelect.value;
-        const textColor = textColorInput.value;
-
-        ctx.font = `bold ${fontSize}px ${fontFamily}`;
-        ctx.fillStyle = textColor;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 4;
-        
-        const textMetrics = ctx.measureText(text);
-        const textWidth = textMetrics.width;
-
-        const textX = (canvas.width - textWidth) / 2;
-        const textY = y + fontSize;
-
-        ctx.fillText(text, textX, textY);
-
-        finalizeRender(text);
+        finalizeRender(textValue);
     }
 
     function finalizeRender(text) {
@@ -409,8 +399,9 @@
         downloadLink.download = `${safeFilename || 'custom'}_output.jpg`;
     }
 
-    frameSelect.addEventListener('change', updateCanvas);
     phoneInput.addEventListener('input', updateCanvas);
+    boxColorInput.addEventListener('input', updateCanvas);
+    boxRadiusSlider.addEventListener('input', updateCanvas);
     fontFamilySelect.addEventListener('change', updateCanvas);
     fontSizeSlider.addEventListener('input', updateCanvas);
     textColorInput.addEventListener('input', updateCanvas);
