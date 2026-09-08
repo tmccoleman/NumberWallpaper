@@ -250,11 +250,10 @@
                     </div>
                 </details>
 
-                <!-- Step 3 -->
+                <!-- Step 3a: Font -->
                 <details>
-                    <summary>3. Font, Text Box & Layout Controls</summary>
+                    <summary>3. Font Controls</summary>
                     <div class="step-content">
-                        <!-- Font Controls -->
                         <label for="font-family">Font Family:</label>
                         <select id="font-family">
                             <option value="Arial">Arial</option>
@@ -269,12 +268,15 @@
                             <input type="range" id="font-size" min="12" max="250" value="73">
                         </div>
 
-                        <label for="text-color">Text Color:</label>
-                        <input type="color" id="text-color" value="#FFFFFF">
+                        <label for="text-color" style="margin-bottom: 2px;">Text Color:</label>
+                        <input type="color" id="text-color" value="#FFFFFF" style="margin-bottom: 0;">
+                    </div>
+                </details>
 
-                        <hr style="border: 0; border-top: 1px solid #383838; margin: 8px 0;">
-
-                        <!-- Text Box Controls -->
+                <!-- Step 3b: Text Box -->
+                <details>
+                    <summary>4. Text Box Controls</summary>
+                    <div class="step-content">
                         <label for="box-color">Box Background Color:</label>
                         <div style="display: flex; gap: 5px; margin-bottom: 6px;">
                             <input type="color" id="box-color" value="#000000" style="flex-grow: 1; margin-bottom: 0;">
@@ -282,14 +284,17 @@
                         </div>
                         <input type="hidden" id="box-color-enabled" value="true">
 
-                        <div class="slider-group">
+                        <div class="slider-group" style="margin-bottom: 0;">
                             <label for="box-radius">Box Corner Radius: <span id="val-radius">12</span>px</label>
                             <input type="range" id="box-radius" min="0" max="50" value="12">
                         </div>
+                    </div>
+                </details>
 
-                        <hr style="border: 0; border-top: 1px solid #383838; margin: 8px 0;">
-
-                        <!-- Layout Controls -->
+                <!-- Step 3c: Layout -->
+                <details>
+                    <summary>5. Layout Controls</summary>
+                    <div class="step-content">
                         <div class="slider-group" style="margin-bottom: 0;">
                             <label for="pos-y">Vertical Position (Y): <span id="val-y">2150</span>px</label>
                             <input type="range" id="pos-y" min="0" max="2400" value="2150">
@@ -299,7 +304,7 @@
 
                 <!-- Step 4 -->
                 <details>
-                    <summary>4. Design Selection</summary>
+                    <summary>6. Design Selection</summary>
                     <div class="step-content">
                         <label for="design">Final Design Background:</label>
                         <select id="design" required style="margin-bottom: 0;">
@@ -325,8 +330,8 @@
             <img id="active-preview" alt="Preview Display">
         </div>
 
-        <!-- Step 5 -->
-        <a id="download-link" class="download-btn" download="custom_image.jpg">5. Download Custom Image</a>
+        <!-- Step 7 -->
+        <a id="download-link" class="download-btn" download="custom_image.jpg">7. Download Custom Image</a>
     </div>
 </div>
 
@@ -336,7 +341,6 @@
     const imageDir = './images/';
     
     const designSelect = document.getElementById('design');
-    const customDesignUpload = document.createElement('input'); // handled dynamically
     const referenceUpload = document.getElementById('reference-upload');
     const uploadLabel = document.getElementById('upload-label');
     const phoneInput = document.getElementById('phone');
@@ -433,7 +437,6 @@
                     const customKey = 'custom_bg_' + file.name;
                     presetImages[customKey] = img;
 
-                    // Insert option right before upload option if not already present
                     if (![...designSelect.options].some(o => o.value === customKey)) {
                         const opt = document.createElement('option');
                         opt.value = customKey;
