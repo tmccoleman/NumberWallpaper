@@ -50,6 +50,11 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
+        input[type="color"] {
+            height: 40px;
+            padding: 4px;
+            cursor: pointer;
+        }
         .slider-group {
             margin-bottom: 15px;
         }
@@ -83,12 +88,13 @@
             display: block;
             margin-bottom: 8px;
         }
+        /* Uniform image sizing for all 3 panels */
         .mockup-box img {
-            max-width: 100%;
-            height: auto;
-            max-height: 250px;
-            border-radius: 4px;
+            width: 100%;
+            height: 240px;
             object-fit: contain;
+            border-radius: 4px;
+            background: #000;
         }
         .download-btn {
             display: inline-block;
@@ -113,7 +119,7 @@
         <h2>Configuration</h2>
         <div id="error-msg" class="error"></div>
         
-        <form id="generator-form">
+        <form id="generator-form" onsubmit="return false;">
             <label for="phone">Phone Number:</label>
             <input type="text" id="phone" required placeholder="(555) 123-4567" value="5551234567">
 
@@ -126,6 +132,23 @@
             <select id="frame">
                 <option value="">None</option>
             </select>
+
+            <label for="font-family">Font Family:</label>
+            <select id="font-family">
+                <option value="Arial">Arial</option>
+                <option value="Impact">Impact</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Trebuchet MS">Trebuchet MS</option>
+            </select>
+
+            <div class="slider-group">
+                <label for="font-size">Font Size: <span id="val-fontsize">32</span>px</label>
+                <input type="range" id="font-size" min="12" max="100" value="32">
+            </div>
+
+            <label for="text-color">Text Color:</label>
+            <input type="color" id="text-color" value="#FFFFFF">
 
             <div class="slider-group">
                 <label for="pos-x">Box X Position: <span id="val-x">50</span>px</label>
@@ -147,13 +170,13 @@
             <!-- Left Mockup (Motorola) -->
             <div class="mockup-box">
                 <span>Motorola Mockup</span>
-                <img id="motorola-preview" src="./preview/motorola.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorola.png</text></svg>'">
+                <img id="motorola-preview" src="./preview/motorolla.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorolla.png</text></svg>'">
             </div>
 
             <!-- Center Custom Preview -->
-            <div class="mockup-box" style="flex: 1.5; border-color: #007BFF;">
+            <div class="mockup-box" style="border-color: #007BFF;">
                 <span style="color: #007BFF; font-weight: bold;">Custom Output Preview</span>
-                <img id="center-preview" alt="Center Preview" style="max-height: 300px;">
+                <img id="center-preview" alt="Center Preview">
             </div>
 
             <!-- Right Mockup (Samsung) -->
@@ -176,6 +199,10 @@
     const designSelect = document.getElementById('design');
     const frameSelect = document.getElementById('frame');
     const phoneInput = document.getElementById('phone');
+    const fontFamilySelect = document.getElementById('font-family');
+    const fontSizeSlider = document.getElementById('font-size');
+    const valFontSize = document.getElementById('val-fontsize');
+    const textColorInput = document.getElementById('text-color');
     const posXSlider = document.getElementById('pos-x');
     const posYSlider = document.getElementById('pos-y');
     const valX = document.getElementById('val-x');
@@ -190,39 +217,45 @@
     let availableDesigns = [];
     let availableFrames = [];
 
-    // Load Manifests
+    // Load Manifests with Fallback
     async function loadAssets() {
-        try {
-            // Load designs manifest
-            const desRes = await fetch(imageDir + 'manifest.json');
-            if (desRes.ok) {
-                availableDesigns = await desRes.json();
-                designSelect.innerHTML = '<option value="" disabled selected>Select a design</option>';
-                availableDesigns.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = name;
-                    designSelect.appendChild(opt);
-                });
-                if (availableDesigns.length > 0) designSelect.value = availableDesigns[0];
-            }
+        availableDesigns = ['design_1.jpg', 'design_2.jpg'];
+        availableFrames = ['frame_box.png', 'banner.png'];
 
-            // Load frames manifest
-            const frmRes = await fetch(frameDir + 'manifest.json');
-            if (frmRes.ok) {
-                availableFrames = await frmRes.json();
-                availableFrames.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = name;
-                    frameSelect.appendChild(opt);
-                });
-            }
-            
-            updateCanvas();
-        } catch (err) {
-            errorMsg.textContent = "Ensure manifest.json exists in ./images/ and ./frames/.";
+        try {
+            const desRes = await fetch(imageDir + 'manifest.json');
+            if (desRes.ok) availableDesigns = await desRes.json();
+        } catch (e) {
+            console.warn("Using fallback design list.");
         }
+
+        try {
+            const frmRes = await fetch(frameDir + 'manifest.json');
+            if (frmRes.ok) availableFrames = await frmRes.json();
+        } catch (e) {
+            console.warn("Using fallback frame list.");
+        }
+
+        // Populate Design Dropdown
+        designSelect.innerHTML = '<option value="" disabled selected>Select a design</option>';
+        availableDesigns.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            designSelect.appendChild(opt);
+        });
+        if (availableDesigns.length > 0) designSelect.value = availableDesigns[0];
+
+        // Populate Frame Dropdown
+        frameSelect.innerHTML = '<option value="">None</option>';
+        availableFrames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            frameSelect.appendChild(opt);
+        });
+        
+        updateCanvas();
     }
 
     function sanitizePhone(input) {
@@ -241,6 +274,7 @@
 
         valX.textContent = posXSlider.value;
         valY.textContent = posYSlider.value;
+        valFontSize.textContent = fontSizeSlider.value;
 
         const baseImg = new Image();
         baseImg.src = imageDir + selectedDesign;
@@ -249,18 +283,15 @@
             canvas.width = baseImg.width;
             canvas.height = baseImg.height;
 
-            // Update slider max bounds relative to image size
             posXSlider.max = baseImg.width - 50;
             posYSlider.max = baseImg.height - 50;
 
-            // 1. Draw base image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(baseImg, 0, 0);
 
             let posX = parseInt(posXSlider.value);
             let posY = parseInt(posYSlider.value);
 
-            // 2. Draw frame if selected
             if (selectedFrame) {
                 const frameImg = new Image();
                 frameImg.src = frameDir + selectedFrame;
@@ -278,13 +309,15 @@
     }
 
     function drawTextAndRender(phone, x, y) {
-        const fontSize = Math.max(24, Math.floor(canvas.width / 30));
-        ctx.font = `bold ${fontSize}px Arial`;
-        ctx.fillStyle = '#FFFFFF';
+        const fontSize = parseInt(fontSizeSlider.value);
+        const fontFamily = fontFamilySelect.value;
+        const textColor = textColorInput.value;
+
+        ctx.font = `bold ${fontSize}px ${fontFamily}`;
+        ctx.fillStyle = textColor;
         ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.shadowBlur = 4;
         
-        // Offset text slightly inside or relative to the box position
         const textX = x + 20;
         const textY = y + fontSize + 10;
 
@@ -300,6 +333,9 @@
     designSelect.addEventListener('change', updateCanvas);
     frameSelect.addEventListener('change', updateCanvas);
     phoneInput.addEventListener('input', updateCanvas);
+    fontFamilySelect.addEventListener('change', updateCanvas);
+    fontSizeSlider.addEventListener('input', updateCanvas);
+    textColorInput.addEventListener('input', updateCanvas);
     posXSlider.addEventListener('input', updateCanvas);
     posYSlider.addEventListener('input', updateCanvas);
 
