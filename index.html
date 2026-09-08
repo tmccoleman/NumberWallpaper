@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        .controls-panel {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 350px;
+            flex-shrink: 0;
+        }
+        .preview-panel {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2, h3 { margin-top: 0; color: #ffffff; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .slider-group {
+            margin-bottom: 15px;
+        }
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .three-panel-display {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .mockup-box {
+            text-align: center;
+            flex: 1;
+            background: #121212;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .mockup-box span {
+            font-size: 12px;
+            color: #aaa;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .mockup-box img {
+            max-width: 100%;
+            height: auto;
+            max-height: 250px;
+            border-radius: 4px;
+            object-fit: contain;
+        }
+        .download-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .download-btn:hover { background: #218838; }
+        .error { color: #ff6b6b; font-size: 14px; margin-bottom: 10px; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <!-- Controls Sidebar -->
+    <div class="controls-panel">
+        <h2>Configuration</h2>
+        <div id="error-msg" class="error"></div>
+        
+        <form id="generator-form">
+            <label for="phone">Phone Number:</label>
+            <input type="text" id="phone" required placeholder="(555) 123-4567" value="5551234567">
+
+            <label for="design">Select Design:</label>
+            <select id="design" required>
+                <option value="" disabled selected>Loading designs...</option>
+            </select>
+
+            <label for="frame">Select Frame Box:</label>
+            <select id="frame">
+                <option value="">None</option>
+            </select>
+
+            <div class="slider-group">
+                <label for="pos-x">Box X Position: <span id="val-x">50</span>px</label>
+                <input type="range" id="pos-x" min="0" max="1000" value="50">
+            </div>
+
+            <div class="slider-group">
+                <label for="pos-y">Box Y Position: <span id="val-y">50</span>px</label>
+                <input type="range" id="pos-y" min="0" max="1000" value="50">
+            </div>
+        </form>
+    </div>
+
+    <!-- 3-Panel Preview Display -->
+    <div class="preview-panel">
+        <h3>Preview Display</h3>
+        
+        <div class="three-panel-display">
+            <!-- Left Mockup (Motorola) -->
+            <div class="mockup-box">
+                <span>Motorola Mockup</span>
+                <img id="motorola-preview" src="./preview/motorolla.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorolla.png</text></svg>'">
+            </div>
+
+            <!-- Center Custom Preview -->
+            <div class="mockup-box" style="flex: 1.5; border-color: #007BFF;">
+                <span style="color: #007BFF; font-weight: bold;">Custom Output Preview</span>
+                <img id="center-preview" alt="Center Preview" style="max-height: 300px;">
+            </div>
+
+            <!-- Right Mockup (Samsung) -->
+            <div class="mockup-box">
+                <span>Samsung Mockup</span>
+                <img id="samsung-preview" src="./preview/samsung.png" alt="Samsung Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/samsung.png</text></svg>'">
+            </div>
+        </div>
+
+        <a id="download-link" class="download-btn" download="custom_image.jpg">Download Custom Image</a>
+    </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+    const imageDir = './images/';
+    const frameDir = './frames/';
+    
+    const designSelect = document.getElementById('design');
+    const frameSelect = document.getElementById('frame');
+    const phoneInput = document.getElementById('phone');
+    const posXSlider = document.getElementById('pos-x');
+    const posYSlider = document.getElementById('pos-y');
+    const valX = document.getElementById('val-x');
+    const valY = document.getElementById('val-y');
+    
+    const errorMsg = document.getElementById('error-msg');
+    const centerPreviewImg = document.getElementById('center-preview');
+    const downloadLink = document.getElementById('download-link');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let availableDesigns = [];
+    let availableFrames = [];
+
+    // Load Manifests
+    async function loadAssets() {
+        try {
+            // Load designs manifest
+            const desRes = await fetch(imageDir + 'manifest.json');
+            if (desRes.ok) {
+                availableDesigns = await desRes.json();
+                designSelect.innerHTML = '<option value="" disabled selected>Select a design</option>';
+                availableDesigns.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    designSelect.appendChild(opt);
+                });
+                if (availableDesigns.length > 0) designSelect.value = availableDesigns[0];
+            }
+
+            // Load frames manifest
+            const frmRes = await fetch(frameDir + 'manifest.json');
+            if (frmRes.ok) {
+                availableFrames = await frmRes.json();
+                availableFrames.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    frameSelect.appendChild(opt);
+                });
+            }
+            
+            updateCanvas();
+        } catch (err) {
+            errorMsg.textContent = "Ensure manifest.json exists in ./images/ and ./frames/.";
+        }
+    }
+
+    function sanitizePhone(input) {
+        const digits = input.replace(/\D/g, '');
+        if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
+        return digits.length === 10 ? digits : null;
+    }
+
+    function updateCanvas() {
+        const selectedDesign = designSelect.value;
+        const selectedFrame = frameSelect.value;
+        const rawPhone = phoneInput.value;
+        const phone = sanitizePhone(rawPhone) || rawPhone;
+
+        if (!selectedDesign) return;
+
+        valX.textContent = posXSlider.value;
+        valY.textContent = posYSlider.value;
+
+        const baseImg = new Image();
+        baseImg.src = imageDir + selectedDesign;
+
+        baseImg.onload = function() {
+            canvas.width = baseImg.width;
+            canvas.height = baseImg.height;
+
+            // Update slider max bounds relative to image size
+            posXSlider.max = baseImg.width - 50;
+            posYSlider.max = baseImg.height - 50;
+
+            // 1. Draw base image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(baseImg, 0, 0);
+
+            let posX = parseInt(posXSlider.value);
+            let posY = parseInt(posYSlider.value);
+
+            // 2. Draw frame if selected
+            if (selectedFrame) {
+                const frameImg = new Image();
+                frameImg.src = frameDir + selectedFrame;
+                frameImg.onload = function() {
+                    ctx.drawImage(frameImg, posX, posY);
+                    drawTextAndRender(phone, posX, posY);
+                };
+                frameImg.onerror = function() {
+                    drawTextAndRender(phone, posX, posY);
+                };
+            } else {
+                drawTextAndRender(phone, posX, posY);
+            }
+        };
+    }
+
+    function drawTextAndRender(phone, x, y) {
+        const fontSize = Math.max(24, Math.floor(canvas.width / 30));
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 4;
+        
+        // Offset text slightly inside or relative to the box position
+        const textX = x + 20;
+        const textY = y + fontSize + 10;
+
+        ctx.fillText(`User: ${phone}`, textX, textY);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        centerPreviewImg.src = dataUrl;
+        downloadLink.href = dataUrl;
+        downloadLink.download = `${phone || 'custom'}_output.jpg`;
+    }
+
+    // Event Listeners for Real-time Updates
+    designSelect.addEventListener('change', updateCanvas);
+    frameSelect.addEventListener('change', updateCanvas);
+    phoneInput.addEventListener('input', updateCanvas);
+    posXSlider.addEventListener('input', updateCanvas);
+    posYSlider.addEventListener('input', updateCanvas);
+
+    loadAssets();
+</script>
+
+</body>
+</html>
