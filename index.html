@@ -29,7 +29,7 @@
             padding: 10px 12px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            width: 320px;
+            width: 330px;
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
@@ -100,6 +100,33 @@
             cursor: pointer;
             margin: 0;
         }
+        
+        /* Accordion / Spoiler Styling */
+        details {
+            background: #252525;
+            border: 1px solid #383838;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            overflow: hidden;
+        }
+        summary {
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            background: #2a2a2a;
+            user-select: none;
+        }
+        summary:hover {
+            background: #333333;
+        }
+        .step-content {
+            padding: 8px 10px;
+            border-top: 1px solid #383838;
+            background: #1e1e1e;
+        }
+
         .preview-header {
             display: flex;
             justify-content: space-between;
@@ -199,55 +226,89 @@
     <!-- Controls Sidebar -->
     <div class="controls-panel">
         <div>
-            <h2>Configuration</h2>
+            <h2>Workflow Configuration</h2>
             <div id="error-msg" class="error"></div>
             
             <form id="generator-form" onsubmit="return false;">
-                <label for="phone">Phone Number / Text:</label>
-                <input type="text" id="phone" required placeholder="(555) 123-4567" value="(555) 123-4567">
+                
+                <!-- Step 1 -->
+                <details open>
+                    <summary>1. Enter Phone Number / Text</summary>
+                    <div class="step-content">
+                        <label for="phone">Text Content:</label>
+                        <input type="text" id="phone" required placeholder="(555) 123-4567" value="(555) 123-4567" style="margin-bottom: 0;">
+                    </div>
+                </details>
 
-                <label for="design">Final Design / Homescreen:</label>
-                <select id="design" required>
-                    <option value="" disabled selected>Loading designs...</option>
-                </select>
+                <!-- Step 2 -->
+                <details>
+                    <summary>2. Upload Homescreen Screenshot</summary>
+                    <div class="step-content">
+                        <label>For precise icon/widget alignment reference:</label>
+                        <label for="reference-upload" class="upload-btn-custom" id="upload-label" style="margin-bottom: 0;">📁 Upload Screenshot Ref...</label>
+                        <input type="file" id="reference-upload" accept="image/*">
+                    </div>
+                </details>
 
-                <label>Positioning Reference:</label>
-                <label for="reference-upload" class="upload-btn-custom" id="upload-label">📁 Upload Screenshot Ref...</label>
-                <input type="file" id="reference-upload" accept="image/*">
+                <!-- Step 3 -->
+                <details>
+                    <summary>3. Font, Text Box & Layout Controls</summary>
+                    <div class="step-content">
+                        <!-- Font Controls -->
+                        <label for="font-family">Font Family:</label>
+                        <select id="font-family">
+                            <option value="Arial">Arial</option>
+                            <option value="Impact">Impact</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Trebuchet MS">Trebuchet MS</option>
+                        </select>
 
-                <label for="box-color">Box Background Color:</label>
-                <div style="display: flex; gap: 5px; margin-bottom: 6px;">
-                    <input type="color" id="box-color" value="#000000" style="flex-grow: 1; margin-bottom: 0;">
-                    <button type="button" id="clear-box-color" style="width: auto; padding: 4px 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px;">None</button>
-                </div>
-                <input type="hidden" id="box-color-enabled" value="true">
+                        <div class="slider-group">
+                            <label for="font-size">Font Size: <span id="val-fontsize">73</span>px</label>
+                            <input type="range" id="font-size" min="12" max="250" value="73">
+                        </div>
 
-                <div class="slider-group">
-                    <label for="box-radius">Box Corner Radius: <span id="val-radius">12</span>px</label>
-                    <input type="range" id="box-radius" min="0" max="50" value="12">
-                </div>
+                        <label for="text-color">Text Color:</label>
+                        <input type="color" id="text-color" value="#FFFFFF">
 
-                <label for="font-family">Font Family:</label>
-                <select id="font-family">
-                    <option value="Arial">Arial</option>
-                    <option value="Impact">Impact</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Trebuchet MS">Trebuchet MS</option>
-                </select>
+                        <hr style="border: 0; border-top: 1px solid #383838; margin: 8px 0;">
 
-                <div class="slider-group">
-                    <label for="font-size">Font Size: <span id="val-fontsize">73</span>px</label>
-                    <input type="range" id="font-size" min="12" max="250" value="73">
-                </div>
+                        <!-- Text Box Controls -->
+                        <label for="box-color">Box Background Color:</label>
+                        <div style="display: flex; gap: 5px; margin-bottom: 6px;">
+                            <input type="color" id="box-color" value="#000000" style="flex-grow: 1; margin-bottom: 0;">
+                            <button type="button" id="clear-box-color" style="width: auto; padding: 4px 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px;">None</button>
+                        </div>
+                        <input type="hidden" id="box-color-enabled" value="true">
 
-                <label for="text-color">Text Color:</label>
-                <input type="color" id="text-color" value="#FFFFFF">
+                        <div class="slider-group">
+                            <label for="box-radius">Box Corner Radius: <span id="val-radius">12</span>px</label>
+                            <input type="range" id="box-radius" min="0" max="50" value="12">
+                        </div>
 
-                <div class="slider-group">
-                    <label for="pos-y">Vertical Position (Y): <span id="val-y">2150</span>px</label>
-                    <input type="range" id="pos-y" min="0" max="2400" value="2150">
-                </div>
+                        <hr style="border: 0; border-top: 1px solid #383838; margin: 8px 0;">
+
+                        <!-- Layout Controls -->
+                        <div class="slider-group" style="margin-bottom: 0;">
+                            <label for="pos-y">Vertical Position (Y): <span id="val-y">2150</span>px</label>
+                            <input type="range" id="pos-y" min="0" max="2400" value="2150">
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Step 4 -->
+                <details>
+                    <summary>4. Design Selection</summary>
+                    <div class="step-content">
+                        <label for="design">Final Design Background:</label>
+                        <select id="design" required style="margin-bottom: 0;">
+                            <option value="" disabled selected>Loading designs...</option>
+                        </select>
+                        <input type="file" id="custom-design-upload" accept="image/*" style="display: none;">
+                    </div>
+                </details>
+
             </form>
         </div>
     </div>
@@ -264,7 +325,8 @@
             <img id="active-preview" alt="Preview Display">
         </div>
 
-        <a id="download-link" class="download-btn" download="custom_image.jpg">Download Custom Image</a>
+        <!-- Step 5 -->
+        <a id="download-link" class="download-btn" download="custom_image.jpg">5. Download Custom Image</a>
     </div>
 </div>
 
@@ -274,6 +336,7 @@
     const imageDir = './images/';
     
     const designSelect = document.getElementById('design');
+    const customDesignUpload = document.createElement('input'); // handled dynamically
     const referenceUpload = document.getElementById('reference-upload');
     const uploadLabel = document.getElementById('upload-label');
     const phoneInput = document.getElementById('phone');
@@ -337,7 +400,59 @@
             opt.textContent = name;
             designSelect.appendChild(opt);
         });
+
+        // Add custom upload option to design dropdown
+        const uploadOpt = document.createElement('option');
+        uploadOpt.value = 'upload_custom';
+        uploadOpt.textContent = '📁 Upload Custom Background...';
+        designSelect.appendChild(uploadOpt);
     }
+
+    // Hidden file input for custom design background uploads
+    const hiddenDesignUpload = document.createElement('input');
+    hiddenDesignUpload.type = 'file';
+    hiddenDesignUpload.accept = 'image/*';
+    hiddenDesignUpload.style.display = 'none';
+    document.body.appendChild(hiddenDesignUpload);
+
+    designSelect.addEventListener('change', function() {
+        if (designSelect.value === 'upload_custom') {
+            hiddenDesignUpload.click();
+        } else {
+            updatePreviews();
+        }
+    });
+
+    hiddenDesignUpload.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const customKey = 'custom_bg_' + file.name;
+                    presetImages[customKey] = img;
+
+                    // Insert option right before upload option if not already present
+                    if (![...designSelect.options].some(o => o.value === customKey)) {
+                        const opt = document.createElement('option');
+                        opt.value = customKey;
+                        opt.textContent = 'Custom: ' + file.name;
+                        designSelect.insertBefore(opt, designSelect.lastElementChild);
+                    }
+                    designSelect.value = customKey;
+                    updatePreviews();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            if (availableDesigns.length > 0) {
+                designSelect.value = availableDesigns[0];
+                updatePreviews();
+            }
+        }
+    });
 
     referenceUpload.addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -350,7 +465,6 @@
                     uploadLabel.textContent = '📁 Change Reference...';
                     posYSlider.max = Math.max(0, currentReferenceImage.height - 50);
                     
-                    // Automatically switch to reference view so the user immediately sees what they uploaded
                     currentMode = 'reference';
                     updateToggleUI();
                     updatePreviews();
@@ -363,7 +477,7 @@
 
     toggleViewBtn.addEventListener('click', function() {
         if (!currentReferenceImage && currentMode === 'final') {
-            alert("Please upload a screenshot reference first using the 'Upload Screenshot Ref' button.");
+            alert("Please upload a screenshot reference first in Step 2.");
             return;
         }
         currentMode = currentMode === 'final' ? 'reference' : 'final';
