@@ -80,6 +80,9 @@
             border: 1px solid #007BFF;
             margin-bottom: 20px;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .preview-box span {
             font-size: 13px;
@@ -90,7 +93,7 @@
         }
         .preview-box img {
             width: 100%;
-            max-height: 550px;
+            height: 380px;
             object-fit: contain;
             border-radius: 4px;
             background: transparent;
@@ -200,7 +203,7 @@
 
     let availableDesigns = [];
     let availableFrames = [];
-    let currentBaseImage = null; // Stores either the preset Image object or custom uploaded Image object
+    let currentBaseImage = null;
 
     async function loadAssets() {
         availableDesigns = ['design_1.jpg', 'design_2.jpg'];
@@ -276,7 +279,6 @@
                 img.onload = function() {
                     currentBaseImage = img;
                     
-                    // Add to dropdown if not already tracked
                     const customOptionVal = 'custom_uploaded_' + file.name;
                     if (![...designSelect.options].some(o => o.value === customOptionVal)) {
                         const opt = document.createElement('option');
@@ -291,7 +293,6 @@
             };
             reader.readAsDataURL(file);
         } else {
-            // Revert dropdown if file picker was cancelled
             if (!currentBaseImage && availableDesigns.length > 0) {
                 designSelect.value = availableDesigns[0];
                 loadPresetDesign(availableDesigns[0]);
