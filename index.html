@@ -156,7 +156,7 @@
 
             <div class="slider-group">
                 <label for="pos-y">Box Y Position: <span id="val-y">2150</span>px</label>
-                <input type="range" id="pos-y" min="0" max="1000" value="2150">
+                <input type="range" id="pos-y" min="0" max="2400" value="2150">
             </div>
         </form>
     </div>
@@ -293,7 +293,8 @@
                 frameImg.src = frameDir + selectedFrame;
                 frameImg.onload = function() {
                     ctx.drawImage(frameImg, posX, posY);
-                    drawTextAndRender(phone, posX, posY);
+                    // Center text horizontally and vertically inside the frame box dimensions
+                    drawCenteredTextAndRender(phone, posX, posY, frameImg.width, frameImg.height);
                 };
                 frameImg.onerror = function() {
                     drawTextAndRender(phone, posX, posY);
@@ -302,6 +303,31 @@
                 drawTextAndRender(phone, posX, posY);
             }
         };
+    }
+
+    function drawCenteredTextAndRender(phone, x, y, frameWidth, frameHeight) {
+        const fontSize = parseInt(fontSizeSlider.value);
+        const fontFamily = fontFamilySelect.value;
+        const textColor = textColorInput.value;
+
+        ctx.font = `bold ${fontSize}px ${fontFamily}`;
+        ctx.fillStyle = textColor;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 4;
+        
+        // Measure text width to align precisely in the center horizontally
+        const textMetrics = ctx.measureText(phone);
+        const textWidth = textMetrics.width;
+
+        // Center horizontally inside the frame box bounds
+        const textX = x + (frameWidth - textWidth) / 2;
+        
+        // Center vertically using alphabetic baseline metrics approximation
+        const textY = y + (frameHeight / 2) + (fontSize / 3);
+
+        ctx.fillText(phone, textX, textY);
+
+        finalizeRender(phone);
     }
 
     function drawTextAndRender(phone, x, y) {
@@ -317,8 +343,12 @@
         const textX = x + 20;
         const textY = y + fontSize + 10;
 
-        ctx.fillText(`${phone}`, textX, textY);
+        ctx.fillText(phone, textX, textY);
 
+        finalizeRender(phone);
+    }
+
+    function finalizeRender(phone) {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
         centerPreviewImg.src = dataUrl;
         downloadLink.href = dataUrl;
