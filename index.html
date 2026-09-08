@@ -88,7 +88,6 @@
             display: block;
             margin-bottom: 8px;
         }
-        /* Uniform image sizing for all 3 panels */
         .mockup-box img {
             width: 100%;
             height: 240px;
@@ -170,7 +169,7 @@
             <!-- Left Mockup (Motorola) -->
             <div class="mockup-box">
                 <span>Motorola Mockup</span>
-                <img id="motorola-preview" src="./preview/motorolla.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorolla.png</text></svg>'">
+                <img id="motorola-preview" src="./preview/motorola.png" alt="Motorola Mockup" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23222\'/><text x=\'50%\' y=\'50%\' fill=\'%23777\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'11\'>preview/motorola.png</text></svg>'">
             </div>
 
             <!-- Center Custom Preview -->
@@ -217,7 +216,6 @@
     let availableDesigns = [];
     let availableFrames = [];
 
-    // Load Manifests with Fallback
     async function loadAssets() {
         availableDesigns = ['design_1.jpg', 'design_2.jpg'];
         availableFrames = ['frame_box.png', 'banner.png'];
@@ -236,7 +234,6 @@
             console.warn("Using fallback frame list.");
         }
 
-        // Populate Design Dropdown
         designSelect.innerHTML = '<option value="" disabled selected>Select a design</option>';
         availableDesigns.forEach(name => {
             const opt = document.createElement('option');
@@ -246,7 +243,6 @@
         });
         if (availableDesigns.length > 0) designSelect.value = availableDesigns[0];
 
-        // Populate Frame Dropdown
         frameSelect.innerHTML = '<option value="">None</option>';
         availableFrames.forEach(name => {
             const opt = document.createElement('option');
@@ -329,7 +325,6 @@
         downloadLink.download = `${phone || 'custom'}_output.jpg`;
     }
 
-    // Event Listeners for Real-time Updates
     designSelect.addEventListener('change', updateCanvas);
     frameSelect.addEventListener('change', updateCanvas);
     phoneInput.addEventListener('input', updateCanvas);
